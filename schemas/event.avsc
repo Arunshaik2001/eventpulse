@@ -1,0 +1,12 @@
+{
+  "type": "record",
+  "name": "Event",
+  "namespace": "com.eventpulse",
+  "fields": [
+    { "name": "eventId", "type": "string" },
+    { "name": "eventType", "type": "string" },
+    { "name": "userId", "type": "string" },
+    { "name": "timestamp", "type": "long" },
+    { "name": "payload", "type": "string" }
+  ]
+}

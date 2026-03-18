@@ -1,0 +1,38 @@
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    properties:
+      schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
+      specific.avro.reader: true
+      linger.ms: 5
+      batch.size: 32768
+      retries: 3
+      enable.idempotence: true
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      acks: all
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%X{correlationId}] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+
+server:
+  port: ${SERVER_PORT:8080}
+
+app:
+  kafka:
+    topics:
+      raw-events: ${RAW_EVENTS_TOPIC:raw-events}
+  idempotency:
+    ttl-seconds: ${EVENT_IDEMPOTENCY_TTL_SECONDS:100}

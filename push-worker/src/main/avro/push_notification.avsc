@@ -1,0 +1,39 @@
+{
+  "type": "record",
+  "name": "PushNotification",
+  "namespace": "com.eventpulse.notification",
+  "fields": [
+    {
+      "name": "notificationId",
+      "type": "string"
+    },
+    {
+      "name": "eventId",
+      "type": "string"
+    },
+    {
+      "name": "userId",
+      "type": "string"
+    },
+    {
+      "name": "title",
+      "type": "string"
+    },
+    {
+      "name": "body",
+      "type": "string"
+    },
+    {
+      "name": "data",
+      "type": {
+        "type": "map",
+        "values": "string"
+      },
+      "default": {}
+    },
+    {
+      "name": "createdAt",
+      "type": "long"
+    }
+  ]
+}

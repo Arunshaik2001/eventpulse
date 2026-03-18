@@ -1,0 +1,38 @@
+server:
+  port: ${SERVER_PORT:8083}
+
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${PUSH_WORKER_CONSUMER_GROUP:push-worker}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+    properties:
+      schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
+      specific.avro.reader: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    prometheus:
+      enabled: true
+
+app:
+  kafka:
+    topics:
+      push-notifications: ${PUSH_NOTIFICATIONS_TOPIC:push-notifications}
+      notification-status: ${NOTIFICATION_STATUS_TOPIC:notification-status}
+  firebase:
+    credentials-path: ${FIREBASE_CREDENTIALS_PATH:}

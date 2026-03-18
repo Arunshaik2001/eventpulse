@@ -1,0 +1,7 @@
+**/.gradle/
+**/build/
+**/.idea/
+**/.DS_Store
+push-worker/src/main/resources/firebase-service-account.json
+.env.local
+eventpulse-*-firebase-adminsdk-*.json

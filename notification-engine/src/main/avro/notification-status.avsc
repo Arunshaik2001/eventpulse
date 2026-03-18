@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "name": "NotificationStatusEvent",
+  "namespace": "com.eventpulse.notification",
+  "fields": [
+    { "name": "notificationId", "type": "string" },
+    { "name": "status", "type": "string" },
+    { "name": "channel", "type": "string" },
+    { "name": "successCount", "type": "int"},
+    { "name": "failureCount", "type": "int"},
+    {"name": "eventId",  "type": "string"}
+  ]
+}
