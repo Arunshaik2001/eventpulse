@@ -10,6 +10,12 @@ The repo is split into three Spring Boot services:
 
 The project also includes local infrastructure for Kafka, Schema Registry, Redis, Postgres, Prometheus, and Grafana.
 
+<img width="312" height="263" alt="Screenshot 2026-03-28 at 6 02 59 PM" src="https://github.com/user-attachments/assets/ba2c53a0-dbaf-4faf-9e05-0af755389147" />
+
+<img width="1254" height="189" alt="Screenshot 2026-03-29 at 11 22 28 PM" src="https://github.com/user-attachments/assets/ac20ed08-79b2-4cd8-a24f-d874b61d345a" />
+
+<img width="1202" height="603" alt="Screenshot 2026-03-28 at 6 04 20 PM" src="https://github.com/user-attachments/assets/891cb9ab-e7b5-44bd-832a-b7a934ab3a7b" />
+
 ## Architecture
 
 ```text
