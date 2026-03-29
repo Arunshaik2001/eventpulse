@@ -1,4 +1,4 @@
-.PHONY: infra service processor worker up up-logs down
+.PHONY: infra service processor worker up up-logs down docker-build-local helm-template-local helm-template-eks
 
 ROOT_DIR := $(CURDIR)
 
@@ -50,3 +50,14 @@ kafka-topics:
 
 redis-cli:
 	docker exec -it redis redis-cli
+
+docker-build-local:
+	docker build -t eventpulse/event-service:local ./event-service
+	docker build -t eventpulse/notification-engine:local ./notification-engine
+	docker build -t eventpulse/push-worker:local ./push-worker
+
+helm-template-local:
+	helm template eventpulse ./deploy/helm/eventpulse -f ./deploy/helm/eventpulse/values-local.yaml
+
+helm-template-eks:
+	helm template eventpulse ./deploy/helm/eventpulse -f ./deploy/helm/eventpulse/values-eks.yaml

@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "eventpulse.fullname" . }}-notification-engine
+  labels:
+    {{- include "eventpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: notification-engine
+spec:
+  replicas: {{ .Values.notificationEngine.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "eventpulse.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: notification-engine
+  template:
+    metadata:
+      labels:
+        {{- include "eventpulse.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: notification-engine
+    spec:
+      serviceAccountName: {{ include "eventpulse.serviceAccountName" . }}
+      containers:
+        - name: notification-engine
+          image: "{{ .Values.notificationEngine.image.repository }}:{{ .Values.notificationEngine.image.tag }}"
+          imagePullPolicy: {{ .Values.notificationEngine.image.pullPolicy }}
+          ports:
+            - containerPort: 8082
+              name: http
+          env:
+            - name: SERVER_PORT
+              value: "8082"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.dependencies.kafkaBootstrapServers | quote }}
+            - name: SCHEMA_REGISTRY_URL
+              value: {{ .Values.dependencies.schemaRegistryUrl | quote }}
+            - name: KAFKA_SECURITY_PROTOCOL
+              value: {{ .Values.dependencies.kafkaAuth.securityProtocol | quote }}
+            {{- if .Values.dependencies.kafkaAuth.saslMechanism }}
+            - name: KAFKA_SASL_MECHANISM
+              value: {{ .Values.dependencies.kafkaAuth.saslMechanism | quote }}
+            {{- end }}
+            {{- if .Values.dependencies.kafkaAuth.saslJaasConfig }}
+            - name: KAFKA_SASL_JAAS_CONFIG
+              value: {{ .Values.dependencies.kafkaAuth.saslJaasConfig | quote }}
+            {{- end }}
+            {{- if .Values.dependencies.kafkaAuth.saslClientCallbackHandlerClass }}
+            - name: KAFKA_SASL_CLIENT_CALLBACK_HANDLER_CLASS
+              value: {{ .Values.dependencies.kafkaAuth.saslClientCallbackHandlerClass | quote }}
+            {{- end }}
+            - name: REDIS_HOST
+              value: {{ .Values.dependencies.redisHost | quote }}
+            - name: REDIS_PORT
+              value: {{ .Values.dependencies.redisPort | quote }}
+            - name: REDIS_SSL_ENABLED
+              value: {{ .Values.dependencies.redisSslEnabled | quote }}
+            - name: POSTGRES_URL
+              value: {{ .Values.dependencies.postgresUrl | quote }}
+            - name: RAW_EVENTS_CONSUMER_GROUP
+              value: {{ .Values.notificationEngine.env.rawEventsConsumerGroup | quote }}
+            - name: RAW_EVENTS_TOPIC
+              value: {{ .Values.topics.rawEvents | quote }}
+            - name: PUSH_NOTIFICATIONS_TOPIC
+              value: {{ .Values.topics.pushNotifications | quote }}
+            - name: NOTIFICATION_STATUS_TOPIC
+              value: {{ .Values.topics.notificationStatus | quote }}
+            {{- if .Values.dependencies.postgresExistingSecret }}
+            - name: POSTGRES_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.dependencies.postgresExistingSecret }}
+                  key: {{ .Values.dependencies.postgresUsernameKey }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.dependencies.postgresExistingSecret }}
+                  key: {{ .Values.dependencies.postgresPasswordKey }}
+            {{- else }}
+            - name: POSTGRES_USERNAME
+              value: {{ .Values.dependencies.postgresUsername | quote }}
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.dependencies.postgresPassword | quote }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.notificationEngine.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: {{ .Values.notificationEngine.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.notificationEngine.probes.liveness.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: {{ .Values.notificationEngine.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.notificationEngine.probes.readiness.periodSeconds }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "eventpulse.fullname" . }}-notification-engine
+  labels:
+    {{- include "eventpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: notification-engine
+spec:
+  type: {{ .Values.notificationEngine.service.type }}
+  selector:
+    {{- include "eventpulse.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: notification-engine
+  ports:
+    - name: http
+      port: {{ .Values.notificationEngine.service.port }}
+      targetPort: http

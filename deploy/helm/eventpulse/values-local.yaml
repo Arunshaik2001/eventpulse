@@ -1,0 +1,35 @@
+ingress:
+  enabled: false
+
+dependencies:
+  kafkaBootstrapServers: "host.docker.internal:9092"
+  schemaRegistryUrl: "http://host.docker.internal:8081"
+  redisHost: "host.docker.internal"
+  redisPort: "6379"
+  redisSslEnabled: false
+  postgresUrl: "jdbc:postgresql://host.docker.internal:5433/eventpulse"
+  postgresUsername: "postgres"
+  postgresPassword: "postgres"
+
+eventService:
+  replicaCount: 1
+  image:
+    repository: eventpulse/event-service
+    tag: local
+
+notificationEngine:
+  replicaCount: 1
+  image:
+    repository: eventpulse/notification-engine
+    tag: local
+
+pushWorker:
+  replicaCount: 1
+  image:
+    repository: eventpulse/push-worker
+    tag: local
+  firebase:
+    existingSecretName: eventpulse-firebase
+
+schemaRegistry:
+  enabled: false

@@ -23,6 +23,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'software.amazon.msk:aws-msk-iam-auth:2.3.0'
 
     implementation 'io.confluent:kafka-avro-serializer:7.6.1'
     implementation 'org.apache.avro:avro:1.11.3'

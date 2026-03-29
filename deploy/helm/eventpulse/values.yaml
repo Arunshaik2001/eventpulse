@@ -1,0 +1,157 @@
+global:
+  imagePullSecrets: []
+  commonLabels: {}
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+ingress:
+  enabled: false
+  className: alb
+  annotations: {}
+  host: eventpulse.example.com
+  path: /
+  pathType: Prefix
+  tls: []
+
+dependencies:
+  kafkaBootstrapServers: "kafka:9092"
+  schemaRegistryUrl: "http://schema-registry:8081"
+  kafkaAuth:
+    securityProtocol: "PLAINTEXT"
+    saslMechanism: ""
+    saslJaasConfig: ""
+    saslClientCallbackHandlerClass: ""
+  redisHost: "redis"
+  redisPort: "6379"
+  redisSslEnabled: false
+  postgresUrl: "jdbc:postgresql://postgres:5432/eventpulse"
+  postgresUsername: "postgres"
+  postgresPassword: "postgres"
+  postgresExistingSecret: ""
+  postgresUsernameKey: "username"
+  postgresPasswordKey: "password"
+
+topics:
+  rawEvents: raw-events
+  pushNotifications: push-notifications
+  notificationStatus: notification-status
+
+eventService:
+  replicaCount: 2
+  image:
+    repository: eventpulse/event-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  env:
+    eventIdempotencyTtlSeconds: "100"
+  probes:
+    liveness:
+      initialDelaySeconds: 30
+      periodSeconds: 15
+    readiness:
+      initialDelaySeconds: 20
+      periodSeconds: 10
+
+notificationEngine:
+  replicaCount: 2
+  image:
+    repository: eventpulse/notification-engine
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8082
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  env:
+    rawEventsConsumerGroup: event-processor-v2
+  probes:
+    liveness:
+      initialDelaySeconds: 45
+      periodSeconds: 15
+    readiness:
+      initialDelaySeconds: 25
+      periodSeconds: 10
+
+pushWorker:
+  replicaCount: 2
+  image:
+    repository: eventpulse/push-worker
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8083
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  env:
+    consumerGroup: push-worker
+  firebase:
+    existingSecretName: ""
+    secretKey: service-account.json
+    mountPath: /var/run/secrets/eventpulse/firebase
+  probes:
+    liveness:
+      initialDelaySeconds: 45
+      periodSeconds: 15
+    readiness:
+      initialDelaySeconds: 25
+      periodSeconds: 10
+
+schemaRegistry:
+  enabled: false
+  kafkaStoreBootstrapServers: ""
+  kafkaStoreSecurityProtocol: ""
+  kafkaStoreSaslMechanism: ""
+  kafkaStoreSaslJaasConfig: ""
+  kafkaStoreSaslClientCallbackHandlerClass: ""
+  installMskIamAuthJar: false
+  mskIamAuthJarUrl: "https://github.com/aws/aws-msk-iam-auth/releases/download/v2.3.0/aws-msk-iam-auth-2.3.0-all.jar"
+  image:
+    repository: confluentinc/cp-schema-registry
+    tag: 7.6.1
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  service:
+    type: ClusterIP
+    port: 8081
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+serviceMonitor:
+  enabled: false
+  labels: {}
+  namespace: ""
+  interval: 15s
+  scrapeTimeout: 10s

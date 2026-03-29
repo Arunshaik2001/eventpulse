@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "eventpulse.fullname" . }}-push-worker
+  labels:
+    {{- include "eventpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: push-worker
+spec:
+  replicas: {{ .Values.pushWorker.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "eventpulse.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: push-worker
+  template:
+    metadata:
+      labels:
+        {{- include "eventpulse.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: push-worker
+    spec:
+      serviceAccountName: {{ include "eventpulse.serviceAccountName" . }}
+      containers:
+        - name: push-worker
+          image: "{{ .Values.pushWorker.image.repository }}:{{ .Values.pushWorker.image.tag }}"
+          imagePullPolicy: {{ .Values.pushWorker.image.pullPolicy }}
+          ports:
+            - containerPort: 8083
+              name: http
+          env:
+            - name: SERVER_PORT
+              value: "8083"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.dependencies.kafkaBootstrapServers | quote }}
+            - name: SCHEMA_REGISTRY_URL
+              value: {{ .Values.dependencies.schemaRegistryUrl | quote }}
+            - name: KAFKA_SECURITY_PROTOCOL
+              value: {{ .Values.dependencies.kafkaAuth.securityProtocol | quote }}
+            {{- if .Values.dependencies.kafkaAuth.saslMechanism }}
+            - name: KAFKA_SASL_MECHANISM
+              value: {{ .Values.dependencies.kafkaAuth.saslMechanism | quote }}
+            {{- end }}
+            {{- if .Values.dependencies.kafkaAuth.saslJaasConfig }}
+            - name: KAFKA_SASL_JAAS_CONFIG
+              value: {{ .Values.dependencies.kafkaAuth.saslJaasConfig | quote }}
+            {{- end }}
+            {{- if .Values.dependencies.kafkaAuth.saslClientCallbackHandlerClass }}
+            - name: KAFKA_SASL_CLIENT_CALLBACK_HANDLER_CLASS
+              value: {{ .Values.dependencies.kafkaAuth.saslClientCallbackHandlerClass | quote }}
+            {{- end }}
+            - name: REDIS_HOST
+              value: {{ .Values.dependencies.redisHost | quote }}
+            - name: REDIS_PORT
+              value: {{ .Values.dependencies.redisPort | quote }}
+            - name: REDIS_SSL_ENABLED
+              value: {{ .Values.dependencies.redisSslEnabled | quote }}
+            - name: PUSH_WORKER_CONSUMER_GROUP
+              value: {{ .Values.pushWorker.env.consumerGroup | quote }}
+            - name: PUSH_NOTIFICATIONS_TOPIC
+              value: {{ .Values.topics.pushNotifications | quote }}
+            - name: NOTIFICATION_STATUS_TOPIC
+              value: {{ .Values.topics.notificationStatus | quote }}
+            - name: FIREBASE_CREDENTIALS_PATH
+              value: "{{ .Values.pushWorker.firebase.mountPath }}/{{ .Values.pushWorker.firebase.secretKey }}"
+          resources:
+            {{- toYaml .Values.pushWorker.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: {{ .Values.pushWorker.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.pushWorker.probes.liveness.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: {{ .Values.pushWorker.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.pushWorker.probes.readiness.periodSeconds }}
+          volumeMounts:
+            - name: firebase-credentials
+              mountPath: {{ .Values.pushWorker.firebase.mountPath }}
+              readOnly: true
+      volumes:
+        - name: firebase-credentials
+          secret:
+            secretName: {{ .Values.pushWorker.firebase.existingSecretName }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "eventpulse.fullname" . }}-push-worker
+  labels:
+    {{- include "eventpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: push-worker
+spec:
+  type: {{ .Values.pushWorker.service.type }}
+  selector:
+    {{- include "eventpulse.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: push-worker
+  ports:
+    - name: http
+      port: {{ .Values.pushWorker.service.port }}
+      targetPort: http

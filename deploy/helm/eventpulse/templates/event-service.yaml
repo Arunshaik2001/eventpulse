@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "eventpulse.fullname" . }}-event-service
+  labels:
+    {{- include "eventpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: event-service
+spec:
+  replicas: {{ .Values.eventService.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "eventpulse.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: event-service
+  template:
+    metadata:
+      labels:
+        {{- include "eventpulse.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: event-service
+    spec:
+      serviceAccountName: {{ include "eventpulse.serviceAccountName" . }}
+      containers:
+        - name: event-service
+          image: "{{ .Values.eventService.image.repository }}:{{ .Values.eventService.image.tag }}"
+          imagePullPolicy: {{ .Values.eventService.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: SERVER_PORT
+              value: "8080"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.dependencies.kafkaBootstrapServers | quote }}
+            - name: SCHEMA_REGISTRY_URL
+              value: {{ .Values.dependencies.schemaRegistryUrl | quote }}
+            - name: KAFKA_SECURITY_PROTOCOL
+              value: {{ .Values.dependencies.kafkaAuth.securityProtocol | quote }}
+            {{- if .Values.dependencies.kafkaAuth.saslMechanism }}
+            - name: KAFKA_SASL_MECHANISM
+              value: {{ .Values.dependencies.kafkaAuth.saslMechanism | quote }}
+            {{- end }}
+            {{- if .Values.dependencies.kafkaAuth.saslJaasConfig }}
+            - name: KAFKA_SASL_JAAS_CONFIG
+              value: {{ .Values.dependencies.kafkaAuth.saslJaasConfig | quote }}
+            {{- end }}
+            {{- if .Values.dependencies.kafkaAuth.saslClientCallbackHandlerClass }}
+            - name: KAFKA_SASL_CLIENT_CALLBACK_HANDLER_CLASS
+              value: {{ .Values.dependencies.kafkaAuth.saslClientCallbackHandlerClass | quote }}
+            {{- end }}
+            - name: REDIS_HOST
+              value: {{ .Values.dependencies.redisHost | quote }}
+            - name: REDIS_PORT
+              value: {{ .Values.dependencies.redisPort | quote }}
+            - name: REDIS_SSL_ENABLED
+              value: {{ .Values.dependencies.redisSslEnabled | quote }}
+            - name: RAW_EVENTS_TOPIC
+              value: {{ .Values.topics.rawEvents | quote }}
+            - name: EVENT_IDEMPOTENCY_TTL_SECONDS
+              value: {{ .Values.eventService.env.eventIdempotencyTtlSeconds | quote }}
+          resources:
+            {{- toYaml .Values.eventService.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: {{ .Values.eventService.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.eventService.probes.liveness.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: {{ .Values.eventService.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.eventService.probes.readiness.periodSeconds }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "eventpulse.fullname" . }}-event-service
+  labels:
+    {{- include "eventpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: event-service
+spec:
+  type: {{ .Values.eventService.service.type }}
+  selector:
+    {{- include "eventpulse.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: event-service
+  ports:
+    - name: http
+      port: {{ .Values.eventService.service.port }}
+      targetPort: http

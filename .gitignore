@@ -5,3 +5,4 @@
 push-worker/src/main/resources/firebase-service-account.json
 .env.local
 eventpulse-*-firebase-adminsdk-*.json
+deploy/helm/eventpulse/values-eks.yaml

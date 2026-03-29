@@ -4,6 +4,10 @@ spring:
     properties:
       schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
       specific.avro.reader: true
+      security.protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+      sasl.mechanism: ${KAFKA_SASL_MECHANISM:}
+      sasl.jaas.config: ${KAFKA_SASL_JAAS_CONFIG:}
+      sasl.client.callback.handler.class: ${KAFKA_SASL_CLIENT_CALLBACK_HANDLER_CLASS:}
       linger.ms: 5
       batch.size: 32768
       retries: 3
@@ -16,6 +20,8 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
 
 logging:
   pattern:

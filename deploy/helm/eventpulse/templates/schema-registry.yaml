@@ -1,0 +1,96 @@
+{{- if .Values.schemaRegistry.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "eventpulse.fullname" . }}-schema-registry
+  labels:
+    {{- include "eventpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: schema-registry
+spec:
+  replicas: {{ .Values.schemaRegistry.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "eventpulse.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: schema-registry
+  template:
+    metadata:
+      labels:
+        {{- include "eventpulse.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: schema-registry
+    spec:
+      serviceAccountName: {{ include "eventpulse.serviceAccountName" . }}
+      {{- if .Values.schemaRegistry.installMskIamAuthJar }}
+      initContainers:
+        - name: install-msk-iam-auth
+          image: curlimages/curl:8.7.1
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - >
+              curl -fsSL {{ .Values.schemaRegistry.mskIamAuthJarUrl | quote }}
+              -o /usr/share/java/schema-registry/aws-msk-iam-auth.jar
+          volumeMounts:
+            - name: schema-registry-ext
+              mountPath: /usr/share/java/schema-registry
+      {{- end }}
+      containers:
+        - name: schema-registry
+          image: "{{ .Values.schemaRegistry.image.repository }}:{{ .Values.schemaRegistry.image.tag }}"
+          imagePullPolicy: {{ .Values.schemaRegistry.image.pullPolicy }}
+          ports:
+            - containerPort: 8081
+              name: http
+          env:
+            - name: SCHEMA_REGISTRY_HOST_NAME
+              value: {{ include "eventpulse.fullname" . }}-schema-registry
+            - name: SCHEMA_REGISTRY_LISTENERS
+              value: "http://0.0.0.0:8081"
+            - name: SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS
+              value: {{ default (printf "PLAINTEXT://%s" .Values.dependencies.kafkaBootstrapServers) .Values.schemaRegistry.kafkaStoreBootstrapServers | quote }}
+            {{- if .Values.schemaRegistry.kafkaStoreSecurityProtocol }}
+            - name: SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL
+              value: {{ .Values.schemaRegistry.kafkaStoreSecurityProtocol | quote }}
+            {{- end }}
+            {{- if .Values.schemaRegistry.kafkaStoreSaslMechanism }}
+            - name: SCHEMA_REGISTRY_KAFKASTORE_SASL_MECHANISM
+              value: {{ .Values.schemaRegistry.kafkaStoreSaslMechanism | quote }}
+            {{- end }}
+            {{- if .Values.schemaRegistry.kafkaStoreSaslJaasConfig }}
+            - name: SCHEMA_REGISTRY_KAFKASTORE_SASL_JAAS_CONFIG
+              value: {{ .Values.schemaRegistry.kafkaStoreSaslJaasConfig | quote }}
+            {{- end }}
+            {{- if .Values.schemaRegistry.kafkaStoreSaslClientCallbackHandlerClass }}
+            - name: SCHEMA_REGISTRY_KAFKASTORE_SASL_CLIENT_CALLBACK_HANDLER_CLASS
+              value: {{ .Values.schemaRegistry.kafkaStoreSaslClientCallbackHandlerClass | quote }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.schemaRegistry.resources | nindent 12 }}
+          {{- if .Values.schemaRegistry.installMskIamAuthJar }}
+          volumeMounts:
+            - name: schema-registry-ext
+              mountPath: /usr/share/java/schema-registry
+          {{- end }}
+      {{- if .Values.schemaRegistry.installMskIamAuthJar }}
+      volumes:
+        - name: schema-registry-ext
+          emptyDir: {}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "eventpulse.fullname" . }}-schema-registry
+  labels:
+    {{- include "eventpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: schema-registry
+spec:
+  type: {{ .Values.schemaRegistry.service.type }}
+  selector:
+    {{- include "eventpulse.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: schema-registry
+  ports:
+    - name: http
+      port: {{ .Values.schemaRegistry.service.port }}
+      targetPort: http
+{{- end }}
